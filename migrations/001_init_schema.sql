@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS users (
     first_name TEXT DEFAULT '',
     last_name TEXT DEFAULT '',
     username TEXT DEFAULT '',
-    language_code TEXT DEFAULT 'en',
+    phone_number TEXT,
+    language_code TEXT, -- Nullable, will prompt if NULL
     is_telegram_premium BOOLEAN DEFAULT FALSE,
     premium_expires_at TIMESTAMP WITH TIME ZONE, -- Bot Premium Expiry
     role TEXT DEFAULT 'user',

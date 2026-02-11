@@ -21,12 +21,13 @@ func (r *UserRepository) Upsert(user *models.User) error {
 	defer cancel()
 
 	query := `
-		INSERT INTO users (id, first_name, last_name, username, language_code, is_telegram_premium, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+		INSERT INTO users (id, first_name, last_name, username, phone_number, language_code, is_telegram_premium, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7, NOW(), NOW())
 		ON CONFLICT (id) DO UPDATE SET
 			first_name = EXCLUDED.first_name,
 			last_name = EXCLUDED.last_name,
 			username = EXCLUDED.username,
+			-- phone_number = COALESCE(EXCLUDED.phone_number, users.phone_number), -- Keep existing if new is null? For now just upsert if provided.
 			is_telegram_premium = EXCLUDED.is_telegram_premium,
 			updated_at = NOW();
 	`
@@ -36,6 +37,7 @@ func (r *UserRepository) Upsert(user *models.User) error {
 		user.FirstName,
 		user.LastName,
 		user.Username,
+		user.PhoneNumber,
 		user.LanguageCode,
 		user.IsTelegramPremium,
 	)
@@ -47,13 +49,14 @@ func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 	defer cancel()
 
 	user := &models.User{}
-	query := `SELECT id, first_name, last_name, username, language_code, is_telegram_premium, premium_expires_at, role, created_at, updated_at, last_active_at FROM users WHERE id = $1`
+	query := `SELECT id, first_name, last_name, username, COALESCE(phone_number, ''), COALESCE(language_code, ''), is_telegram_premium, premium_expires_at, role, created_at, updated_at, last_active_at FROM users WHERE id = $1`
 
 	err := r.DB.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Username,
+		&user.PhoneNumber,
 		&user.LanguageCode,
 		&user.IsTelegramPremium,
 		&user.PremiumExpiresAt,

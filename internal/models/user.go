@@ -10,7 +10,8 @@ type User struct {
 	FirstName         string       `json:"first_name"`
 	LastName          string       `json:"last_name"`
 	Username          string       `json:"username"`
-	LanguageCode      string       `json:"language_code"`
+	PhoneNumber       string       `json:"phone_number"`  // New field
+	LanguageCode      string       `json:"language_code"` // Treated as empty string if NULL
 	IsTelegramPremium bool         `json:"is_telegram_premium"`
 	PremiumExpiresAt  sql.NullTime `json:"premium_expires_at"`
 	Role              string       `json:"role"`
