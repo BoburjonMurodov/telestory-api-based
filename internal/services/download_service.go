@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bbr/telestory-api-based/internal/i18n"
 	"github.com/bbr/telestory-api-based/internal/models"
 	"github.com/bbr/telestory-api-based/internal/repositories"
 	tele "gopkg.in/telebot.v3"
@@ -40,7 +41,7 @@ type Story struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-func (s *DownloadService) FetchStoriesByUsername(username string) (*TeleStoryResponse, error) {
+func (s *DownloadService) FetchStoriesByInput(input string) (*TeleStoryResponse, error) {
 	apiKey := os.Getenv("TELESTORY_API_KEY")
 	apiURL := os.Getenv("TELESTORY_API_URL")
 
@@ -48,12 +49,13 @@ func (s *DownloadService) FetchStoriesByUsername(username string) (*TeleStoryRes
 		return nil, fmt.Errorf("TELESTORY_API_KEY or TELESTORY_API_URL not set")
 	}
 
-	// Clean username (remove @ if present)
-	cleanUsername := strings.TrimPrefix(username, "@")
+	// Clean input (remove @ for username or + for phone number)
+	cleanInput := strings.TrimPrefix(input, "@")
+	cleanInput = strings.TrimPrefix(cleanInput, "+")
 
 	// Build request URL
 	reqURL := fmt.Sprintf("%s/get_stories_by_username?api_key=%s&username=%s&archive=true&mark=false",
-		apiURL, url.QueryEscape(apiKey), url.QueryEscape(cleanUsername))
+		apiURL, url.QueryEscape(apiKey), url.QueryEscape(cleanInput))
 
 	// Create request
 	req, err := http.NewRequest("GET", reqURL, nil)
@@ -94,10 +96,16 @@ func (s *DownloadService) FetchStoriesByUsername(username string) (*TeleStoryRes
 }
 
 func (s *DownloadService) ProcessDownload(ctx tele.Context, user *models.User, input string) error {
+	// Get user's language
+	userLang := user.LanguageCode
+	if userLang == "" {
+		userLang = "en"
+	}
+
 	// Fetch stories from TeleStory API
-	apiResp, err := s.FetchStoriesByUsername(input)
+	apiResp, err := s.FetchStoriesByInput(input)
 	if err != nil {
-		return ctx.Send(fmt.Sprintf("❌ Error fetching stories: %v", err))
+		return ctx.Send(fmt.Sprintf(i18n.GetMessage(userLang, "fetch_error"), err.Error()))
 	}
 
 	// Count stories
@@ -106,9 +114,9 @@ func (s *DownloadService) ProcessDownload(ctx tele.Context, user *models.User, i
 	// Send result to user
 	var message string
 	if storyCount == 0 {
-		message = fmt.Sprintf("📭 No stories found for %s", input)
+		message = fmt.Sprintf(i18n.GetMessage(userLang, "no_stories"), input)
 	} else {
-		message = fmt.Sprintf("📊 Found %d stories for %s", storyCount, input)
+		message = fmt.Sprintf(i18n.GetMessage(userLang, "story_count"), storyCount, input)
 	}
 
 	if err := ctx.Send(message); err != nil {

@@ -7,6 +7,9 @@ var Locales = map[string]map[string]string{
 		"instruction": "**You can send:**\n- `username` or `@username`\n- `+1234567890`",
 		"processing":  "⏳ Processing...",
 		"error_limit": "🚫 Daily limit reached (3/3). Upgrade to Premium for unlimited searches!",
+		"story_count": "📊 Found %d stories for %s",
+		"no_stories":  "📭 No stories found for %s",
+		"fetch_error": "❌ Error fetching stories: %s",
 	},
 	"uz": {
 		"welcome":     "🇺🇿 Xush kelibsiz! Tilni tanlang:",
@@ -14,6 +17,9 @@ var Locales = map[string]map[string]string{
 		"instruction": "**Yuborishingiz mumkin:**\n- `username` yoki `@username`\n- `+998901234567`",
 		"processing":  "⏳ Qidirilmoqda...",
 		"error_limit": "🚫 Limit tugadi (3/3). Cheksiz qidirish uchun Premium oling!",
+		"story_count": "📊 %s uchun %d ta hikoya topildi",
+		"no_stories":  "📭 %s uchun hikoya topilmadi",
+		"fetch_error": "❌ Hikoyalarni yuklashda xatolik: %s",
 	},
 	"ru": {
 		"welcome":     "🇷🇺 Добро пожаловать! Выберите язык:",
@@ -21,6 +27,9 @@ var Locales = map[string]map[string]string{
 		"instruction": "**Вы можете отправить:**\n- `username` или `@username`\n- `+79001234567`",
 		"processing":  "⏳ Обработка...",
 		"error_limit": "🚫 Лимит исчерпан (3/3). Купите Premium для безлимитного поиска!",
+		"story_count": "📊 Найдено %d историй для %s",
+		"no_stories":  "📭 Истории не найдены для %s",
+		"fetch_error": "❌ Ошибка загрузки историй: %s",
 	},
 }
 
