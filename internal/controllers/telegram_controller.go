@@ -118,21 +118,24 @@ func (c *TelegramController) TextHandler(ctx tele.Context) error {
 		return ctx.Send("🚫 " + reason)
 	}
 
-	// 3. Process Download
-	statusMsg, _ := c.Bot.Send(teleUser, "⏳ Processing...")
-
-	err = c.DownloadService.ProcessDownload(ctx, user, input)
-
-	// Cleanup status message
-	c.Bot.Delete(statusMsg)
-
+	// 3. Send Processing Message (localized)
+	processingMsg := i18n.GetMessage(user.LanguageCode, "processing")
+	sentMsg, err := c.Bot.Send(teleUser, processingMsg)
 	if err != nil {
-		log.Printf("Download error: %v", err)
-		return ctx.Send("❌ Failed to process request.")
+		log.Printf("Error sending processing message: %v", err)
+		return ctx.Send("An error occurred.")
 	}
 
-	// 4. Update Activity timestamp
-	c.UserService.RecordActivity(user.ID)
+	// 4. Record Activity
+	if err := c.UserService.RecordActivity(user.ID); err != nil {
+		log.Printf("Error recording activity: %v", err)
+	}
+
+	// 5. Process Download (will edit the sentMsg with result)
+	if err := c.DownloadService.ProcessDownloadWithEdit(c.Bot, sentMsg, user, input); err != nil {
+		log.Printf("Error processing download: %v", err)
+		return err
+	}
 
 	return nil
 }
