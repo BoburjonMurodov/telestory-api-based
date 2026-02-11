@@ -30,25 +30,30 @@ func (c *TelegramController) SetupHandlers() {
 }
 
 func (c *TelegramController) StartHandler(ctx tele.Context) error {
-	// Register user first in EN default
-	_, err := c.UserService.RegisterUser(ctx.Sender())
+	// Register user first
+	user, err := c.UserService.RegisterUser(ctx.Sender())
 	if err != nil {
 		return ctx.Send("Welcome! (Error saving profile)")
 	}
 
-	// Send Language Selection Menu
-	menu := &tele.ReplyMarkup{}
-	btnEn := menu.Data("🇺🇸 English", "lang", "en")
-	btnUz := menu.Data("🇺🇿 O'zbek", "lang", "uz")
-	btnRu := menu.Data("🇷🇺 Русский", "lang", "ru")
+	// 1. If Language is NOT set, show menu
+	if user.LanguageCode == "" {
+		menu := &tele.ReplyMarkup{}
+		btnEn := menu.Data("🇺🇸 English", "lang", "en")
+		btnUz := menu.Data("🇺🇿 O'zbek", "lang", "uz")
+		btnRu := menu.Data("🇷🇺 Русский", "lang", "ru")
 
-	menu.Inline(
-		menu.Row(btnEn),
-		menu.Row(btnUz),
-		menu.Row(btnRu),
-	)
+		menu.Inline(
+			menu.Row(btnEn),
+			menu.Row(btnUz),
+			menu.Row(btnRu),
+		)
+		return ctx.Send(i18n.GetMessage("en", "welcome"), menu)
+	}
 
-	return ctx.Send(i18n.GetMessage("en", "welcome"), menu)
+	// 2. If Language IS set, show instructions directly
+	msg := i18n.GetMessage(user.LanguageCode, "instruction")
+	return ctx.Send(msg, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 }
 
 func (c *TelegramController) LanguageCallback(ctx tele.Context) error {
@@ -69,7 +74,7 @@ func (c *TelegramController) LanguageCallback(ctx tele.Context) error {
 		i18n.GetMessage(langCode, "instruction"),
 	)
 
-	return ctx.Send(msg)
+	return ctx.Send(msg, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 }
 
 func (c *TelegramController) TextHandler(ctx tele.Context) error {

@@ -30,9 +30,9 @@ func (s *UserService) RegisterUser(teleUser *tele.User) (*models.User, error) {
 		IsTelegramPremium: teleUser.IsPremium,
 	}
 
-	if user.LanguageCode == "" {
-		user.LanguageCode = "en"
-	}
+	// if user.LanguageCode == "" {
+	// 	user.LanguageCode = "en"
+	// }
 
 	if err := s.UserRepo.Upsert(user); err != nil {
 		return nil, err

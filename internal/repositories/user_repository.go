@@ -27,7 +27,6 @@ func (r *UserRepository) Upsert(user *models.User) error {
 			first_name = EXCLUDED.first_name,
 			last_name = EXCLUDED.last_name,
 			username = EXCLUDED.username,
-			language_code = EXCLUDED.language_code,
 			is_telegram_premium = EXCLUDED.is_telegram_premium,
 			updated_at = NOW();
 	`
