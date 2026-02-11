@@ -21,24 +21,29 @@ func NewUserService(userRepo *repositories.UserRepository, downloadRepo *reposit
 }
 
 func (s *UserService) RegisterUser(teleUser *tele.User) (*models.User, error) {
+	// 1. Check if user already exists
+	existingUser, err := s.UserRepo.GetByID(teleUser.ID)
+	if err == nil {
+		// User exists, return it without modifying
+		return existingUser, nil
+	}
+
+	// 2. User doesn't exist, create new one
+	// DO NOT set language_code - let it be NULL until user chooses
 	user := &models.User{
 		ID:                teleUser.ID,
 		FirstName:         teleUser.FirstName,
 		LastName:          teleUser.LastName,
 		Username:          teleUser.Username,
-		LanguageCode:      teleUser.LanguageCode,
+		LanguageCode:      "",
 		IsTelegramPremium: teleUser.IsPremium,
 	}
 
-	// if user.LanguageCode == "" {
-	// 	user.LanguageCode = "en"
-	// }
-
-	if err := s.UserRepo.Upsert(user); err != nil {
+	if err := s.UserRepo.Insert(user); err != nil {
 		return nil, err
 	}
 
-	return s.UserRepo.GetByID(user.ID) // Return full user with db fields
+	return s.UserRepo.GetByID(user.ID)
 }
 
 func (s *UserService) CanDownload(user *models.User) (bool, string, error) {

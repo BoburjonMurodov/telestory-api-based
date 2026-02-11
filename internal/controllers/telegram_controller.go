@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/bbr/telestory-api-based/internal/i18n"
 	"github.com/bbr/telestory-api-based/internal/services"
@@ -33,10 +34,12 @@ func (c *TelegramController) StartHandler(ctx tele.Context) error {
 	// Register user first
 	user, err := c.UserService.RegisterUser(ctx.Sender())
 	if err != nil {
-		return ctx.Send("Welcome! (Error saving profile)")
+		return ctx.Send("Welcome!")
 	}
 
 	// 1. If Language is NOT set, show menu
+	// fmt.Println()
+	log.Println("user: ", user)
 	if user.LanguageCode == "" {
 		menu := &tele.ReplyMarkup{}
 		btnEn := menu.Data("🇺🇸 English", "lang", "en")
@@ -57,18 +60,35 @@ func (c *TelegramController) StartHandler(ctx tele.Context) error {
 }
 
 func (c *TelegramController) LanguageCallback(ctx tele.Context) error {
-	langCode := ctx.Args()[0] // "en", "uz", or "ru"
+	// Get the language code from callback data
+	// Callback data format is "unique|data", e.g., "lang|uz"
+	callbackData := ctx.Callback().Data
+	parts := strings.Split(callbackData, "|")
+
+	var langCode string
+	if len(parts) == 2 {
+		langCode = parts[1] // Extract "uz" from "lang|uz"
+	} else {
+		langCode = callbackData // Fallback if format is different
+	}
+
 	userID := ctx.Sender().ID
+
+	log.Printf("Language selected: %s for user %d", langCode, userID)
 
 	// 1. Update Lang in DB
 	if err := c.UserService.UpdateLanguage(userID, langCode); err != nil {
+		log.Printf("Error updating language: %v", err)
 		return ctx.Respond(&tele.CallbackResponse{Text: "Error updating language"})
 	}
 
-	// 2. Delete Menu
+	// 2. Respond to callback (removes loading state)
+	ctx.Respond(&tele.CallbackResponse{})
+
+	// 3. Delete Menu
 	c.Bot.Delete(ctx.Message())
 
-	// 3. Send Confirmation & Instructions in new Lang
+	// 4. Send Confirmation & Instructions in new Lang
 	msg := fmt.Sprintf("%s\n\n%s",
 		i18n.GetMessage(langCode, "registered"),
 		i18n.GetMessage(langCode, "instruction"),
