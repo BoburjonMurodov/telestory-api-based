@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/bbr/telestory-api-based/internal/models"
@@ -47,9 +49,25 @@ func (s *UserService) RegisterUser(teleUser *tele.User) (*models.User, error) {
 }
 
 func (s *UserService) CanDownload(user *models.User) (bool, string, error) {
-	// 1. Check 1-minute cooldown
-	if user.LastActiveAt.Valid && time.Since(user.LastActiveAt.Time) < time.Minute {
-		return false, "Please wait 1 minute between downloads.", nil
+	// Get environment-based limits
+	env := os.Getenv("APP_ENV")
+
+	var cooldownDuration time.Duration
+	var dailyLimit int
+
+	if env == "production" {
+		cooldownDuration = 1 * time.Minute
+		dailyLimit = 3
+	} else {
+		// Development/local environment
+		cooldownDuration = 10 * time.Second
+		dailyLimit = 100
+	}
+
+	// 1. Check cooldown
+	if user.LastActiveAt.Valid && time.Since(user.LastActiveAt.Time) < cooldownDuration {
+		remainingTime := cooldownDuration - time.Since(user.LastActiveAt.Time)
+		return false, fmt.Sprintf("Please wait %d seconds between downloads.", int(remainingTime.Seconds())), nil
 	}
 
 	// 2. Check Daily Limit (if not premium)
@@ -58,8 +76,8 @@ func (s *UserService) CanDownload(user *models.User) (bool, string, error) {
 		if err != nil {
 			return false, "", err
 		}
-		if count >= 3 {
-			return false, "Daily limit reached (3/3). Upgrade to Premium for unlimited downloads!", nil
+		if count >= dailyLimit {
+			return false, fmt.Sprintf("Daily limit reached (%d/%d). Upgrade to Premium for unlimited downloads!", count, dailyLimit), nil
 		}
 	}
 
