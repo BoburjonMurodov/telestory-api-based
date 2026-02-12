@@ -32,6 +32,7 @@ func (c *TelegramController) SetupHandlers() {
 
 func (c *TelegramController) StartHandler(ctx tele.Context) error {
 	// Register user first
+	log.Println("user: ", ctx.Sender())
 	user, err := c.UserService.RegisterUser(ctx.Sender())
 	if err != nil {
 		return ctx.Send("Welcome!")

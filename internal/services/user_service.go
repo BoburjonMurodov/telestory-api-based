@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/bbr/telestory-api-based/internal/i18n"
 	"github.com/bbr/telestory-api-based/internal/models"
 	"github.com/bbr/telestory-api-based/internal/repositories"
 	tele "gopkg.in/telebot.v3"
@@ -49,6 +50,11 @@ func (s *UserService) RegisterUser(teleUser *tele.User) (*models.User, error) {
 }
 
 func (s *UserService) CanDownload(user *models.User) (bool, string, error) {
+	// 0. Admins bypass all limits
+	if user.Role == "admin" {
+		return true, "", nil
+	}
+
 	// Get environment-based limits
 	env := os.Getenv("APP_ENV")
 
@@ -67,7 +73,8 @@ func (s *UserService) CanDownload(user *models.User) (bool, string, error) {
 	// 1. Check cooldown
 	if user.LastActiveAt.Valid && time.Since(user.LastActiveAt.Time) < cooldownDuration {
 		remainingTime := cooldownDuration - time.Since(user.LastActiveAt.Time)
-		return false, fmt.Sprintf("Please wait %d seconds between downloads.", int(remainingTime.Seconds())), nil
+		msg := fmt.Sprintf(i18n.GetMessage(user.LanguageCode, "cooldown"), int(remainingTime.Seconds()))
+		return false, msg, nil
 	}
 
 	// 2. Check Daily Limit (if not premium)
@@ -77,7 +84,8 @@ func (s *UserService) CanDownload(user *models.User) (bool, string, error) {
 			return false, "", err
 		}
 		if count >= dailyLimit {
-			return false, fmt.Sprintf("Daily limit reached (%d/%d). Upgrade to Premium for unlimited downloads!", count, dailyLimit), nil
+			msg := fmt.Sprintf(i18n.GetMessage(user.LanguageCode, "error_limit"), count, dailyLimit)
+			return false, msg, nil
 		}
 	}
 
