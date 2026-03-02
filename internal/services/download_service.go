@@ -111,6 +111,12 @@ func (s *DownloadService) ProcessDownload(ctx tele.Context, user *models.User, i
 	// Fetch stories from TeleStory API
 	apiResp, err := s.FetchStoriesByInput(input)
 	if err != nil {
+		// Log the failed download
+		s.DownloadRepo.Create(&models.Download{
+			UserID: user.ID,
+			Input:  input,
+			Status: "failed",
+		})
 		return ctx.Send(fmt.Sprintf(i18n.GetMessage(userLang, "fetch_error"), err.Error()))
 	}
 
@@ -120,6 +126,12 @@ func (s *DownloadService) ProcessDownload(ctx tele.Context, user *models.User, i
 	// Send result to user
 	var message string
 	if storyCount == 0 {
+		// Log the failed download (no stories)
+		s.DownloadRepo.Create(&models.Download{
+			UserID: user.ID,
+			Input:  input,
+			Status: "failed",
+		})
 		message = fmt.Sprintf(i18n.GetMessage(userLang, "no_stories"), input)
 	} else {
 		message = fmt.Sprintf(i18n.GetMessage(userLang, "story_count"), storyCount, input)
@@ -129,15 +141,17 @@ func (s *DownloadService) ProcessDownload(ctx tele.Context, user *models.User, i
 		return err
 	}
 
-	// Log the download
-	download := &models.Download{
-		UserID: user.ID,
-		Input:  input,
-		Status: "success",
-	}
+	if storyCount > 0 {
+		// Log the success download
+		download := &models.Download{
+			UserID: user.ID,
+			Input:  input,
+			Status: "success",
+		}
 
-	if err := s.DownloadRepo.Create(download); err != nil {
-		return fmt.Errorf("failed to log download: %v", err)
+		if err := s.DownloadRepo.Create(download); err != nil {
+			return fmt.Errorf("failed to log download: %v", err)
+		}
 	}
 
 	return nil
@@ -210,6 +224,12 @@ func (s *DownloadService) ProcessDownloadWithEdit(bot *tele.Bot, msg *tele.Messa
 	// Fetch stories from TeleStory API
 	apiResp, err := s.FetchStoriesByInput(input)
 	if err != nil {
+		// Log the failed download
+		s.DownloadRepo.Create(&models.Download{
+			UserID: user.ID,
+			Input:  input,
+			Status: "failed",
+		})
 		errorMsg := fmt.Sprintf(i18n.GetMessage(userLang, "fetch_error"), err.Error())
 		bot.Edit(msg, errorMsg)
 		return err
@@ -221,6 +241,12 @@ func (s *DownloadService) ProcessDownloadWithEdit(bot *tele.Bot, msg *tele.Messa
 	storyCount := len(apiResp.Stories)
 
 	if storyCount == 0 {
+		// Log the failed download (no stories)
+		s.DownloadRepo.Create(&models.Download{
+			UserID: user.ID,
+			Input:  input,
+			Status: "failed",
+		})
 		message := fmt.Sprintf(i18n.GetMessage(userLang, "no_stories"), input)
 		bot.Edit(msg, message, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 		return nil

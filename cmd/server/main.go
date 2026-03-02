@@ -52,10 +52,12 @@ func main() {
 	// Initialize Services
 	userService := services.NewUserService(userRepo, downloadRepo)
 	downloadService := services.NewDownloadService(downloadRepo)
+	logService := services.NewLogService(bot)
+	analyticsService := services.NewAnalyticsService(userRepo, downloadRepo)
 
 	// Initialize Controllers
 	httpCtrl := controllers.NewHTTPController()
-	teleCtrl := controllers.NewTelegramController(bot, userService, downloadService)
+	teleCtrl := controllers.NewTelegramController(bot, userService, downloadService, logService, analyticsService)
 
 	// Setup Handlers
 	httpCtrl.SetupRoutes()

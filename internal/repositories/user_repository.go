@@ -110,3 +110,22 @@ func (r *UserRepository) UpdateLanguage(id int64, langCode string) error {
 	_, err := r.DB.ExecContext(ctx, query, langCode, id)
 	return err
 }
+
+func (r *UserRepository) CountAllUsers() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+func (r *UserRepository) CountActiveUsers(days int) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT COUNT(*) FROM users WHERE last_active_at >= NOW() - INTERVAL '1 day' * $1`
+	var count int
+	err := r.DB.QueryRowContext(ctx, query, days).Scan(&count)
+	return count, err
+}

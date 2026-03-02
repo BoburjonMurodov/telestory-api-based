@@ -39,3 +39,39 @@ func (r *DownloadRepository) CountToday(userID int64) (int, error) {
 	err := r.DB.QueryRowContext(ctx, query, userID).Scan(&count)
 	return count, err
 }
+
+func (r *DownloadRepository) CountTotalDownloads() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM downloads").Scan(&count)
+	return count, err
+}
+
+func (r *DownloadRepository) CountDownloadsByStatus(status string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM downloads WHERE status = $1", status).Scan(&count)
+	return count, err
+}
+
+func (r *DownloadRepository) CountDownloadsToday() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM downloads WHERE created_at >= CURRENT_DATE").Scan(&count)
+	return count, err
+}
+
+func (r *DownloadRepository) CountDownloadsTodayByStatus(status string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count int
+	err := r.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM downloads WHERE status = $1 AND created_at >= CURRENT_DATE", status).Scan(&count)
+	return count, err
+}

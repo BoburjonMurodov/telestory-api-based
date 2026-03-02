@@ -11,48 +11,76 @@ import (
 )
 
 type TelegramController struct {
-	Bot             *tele.Bot
-	UserService     *services.UserService
-	DownloadService *services.DownloadService
+	Bot              *tele.Bot
+	UserService      *services.UserService
+	DownloadService  *services.DownloadService
+	LogService       *services.LogService
+	AnalyticsService *services.AnalyticsService
 }
 
-func NewTelegramController(bot *tele.Bot, userService *services.UserService, downloadService *services.DownloadService) *TelegramController {
+func NewTelegramController(bot *tele.Bot, userService *services.UserService, downloadService *services.DownloadService, logService *services.LogService, analyticsService *services.AnalyticsService) *TelegramController {
 	return &TelegramController{
-		Bot:             bot,
-		UserService:     userService,
-		DownloadService: downloadService,
+		Bot:              bot,
+		UserService:      userService,
+		DownloadService:  downloadService,
+		LogService:       logService,
+		AnalyticsService: analyticsService,
 	}
 }
 
 func (c *TelegramController) SetupHandlers() {
 	c.Bot.Handle("/start", c.StartHandler)
+	c.Bot.Handle("/stats", c.StatsHandler)
 	c.Bot.Handle(tele.OnText, c.TextHandler)
 	c.Bot.Handle(tele.OnCallback, c.LanguageCallback)
+
+	// Unsupported inputs
+	c.Bot.Handle(tele.OnPhoto, c.UnsupportedHandler)
+	c.Bot.Handle(tele.OnVideo, c.UnsupportedHandler)
+	c.Bot.Handle(tele.OnDocument, c.UnsupportedHandler)
+}
+
+func (c *TelegramController) showLanguageMenu(ctx tele.Context) error {
+	menu := &tele.ReplyMarkup{}
+	btnEn := menu.Data("🇺🇸 English", "lang", "en")
+	btnUz := menu.Data("🇺🇿 O'zbek", "lang", "uz")
+	btnRu := menu.Data("🇷🇺 Русский", "lang", "ru")
+
+	menu.Inline(
+		menu.Row(btnEn),
+		menu.Row(btnUz),
+		menu.Row(btnRu),
+	)
+	return ctx.Send(i18n.GetMessage("en", "welcome"), menu)
+}
+
+func (c *TelegramController) UnsupportedHandler(ctx tele.Context) error {
+	teleUser := ctx.Sender()
+	user, err := c.UserService.RegisterUser(teleUser)
+	if err != nil {
+		return nil
+	}
+	if user.LanguageCode == "" {
+		return c.showLanguageMenu(ctx)
+	}
+	return ctx.Send(i18n.GetMessage(user.LanguageCode, "invalid_input"))
 }
 
 func (c *TelegramController) StartHandler(ctx tele.Context) error {
+	teleUser := ctx.Sender()
+
+	// Log new user to admin channel
+	c.LogService.LogNewUser(teleUser)
+
 	// Register user first
-	log.Println("user: ", ctx.Sender())
-	user, err := c.UserService.RegisterUser(ctx.Sender())
+	log.Println("user: ", teleUser)
+	user, err := c.UserService.RegisterUser(teleUser)
 	if err != nil {
 		return ctx.Send("Welcome!")
 	}
 
-	// 1. If Language is NOT set, show menu
-	// fmt.Println()
-	log.Println("user: ", user)
 	if user.LanguageCode == "" {
-		menu := &tele.ReplyMarkup{}
-		btnEn := menu.Data("🇺🇸 English", "lang", "en")
-		btnUz := menu.Data("🇺🇿 O'zbek", "lang", "uz")
-		btnRu := menu.Data("🇷🇺 Русский", "lang", "ru")
-
-		menu.Inline(
-			menu.Row(btnEn),
-			menu.Row(btnUz),
-			menu.Row(btnRu),
-		)
-		return ctx.Send(i18n.GetMessage("en", "welcome"), menu)
+		return c.showLanguageMenu(ctx)
 	}
 
 	// 2. If Language IS set, show instructions directly
@@ -98,15 +126,41 @@ func (c *TelegramController) LanguageCallback(ctx tele.Context) error {
 	return ctx.Send(msg, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 }
 
+func isValidSearchInput(input string) bool {
+	input = strings.TrimSpace(input)
+
+	// If it contains a URL/slash or any spaces, it's invalid
+	if strings.Contains(input, " ") || strings.Contains(input, "\n") || strings.Contains(input, "/") {
+		return false
+	}
+
+	if len(input) < 3 || len(input) > 32 {
+		return false
+	}
+
+	return true
+}
+
 func (c *TelegramController) TextHandler(ctx tele.Context) error {
 	input := ctx.Text()
 	teleUser := ctx.Sender()
+
+	// Log the search request
+	c.LogService.LogSearchRequest(teleUser, input)
 
 	// 1. Get/Register User (Ensure we have latest data)
 	user, err := c.UserService.RegisterUser(teleUser)
 	if err != nil {
 		log.Printf("Error registering user: %v", err)
 		return ctx.Send("An error occurred. Please try again.")
+	}
+
+	if user.LanguageCode == "" {
+		return c.showLanguageMenu(ctx)
+	}
+
+	if !isValidSearchInput(input) {
+		return ctx.Send(i18n.GetMessage(user.LanguageCode, "invalid_input"))
 	}
 
 	// 2. Check Limits
@@ -139,4 +193,30 @@ func (c *TelegramController) TextHandler(ctx tele.Context) error {
 	}
 
 	return nil
+}
+
+func (c *TelegramController) StatsHandler(ctx tele.Context) error {
+	teleUser := ctx.Sender()
+
+	// 1. Get/Register User
+	user, err := c.UserService.RegisterUser(teleUser)
+	if err != nil {
+		log.Printf("Error registering user: %v", err)
+		return ctx.Send("An error occurred. Please try again.")
+	}
+
+	// 2. Check if user is an admin
+	if user.Role != "admin" {
+		log.Printf("User %d (role: %s) attempted to access /stats but was denied.", user.ID, user.Role)
+		return nil // Ignore silently
+	}
+
+	// 3. Fetch analytics report
+	report, err := c.AnalyticsService.GetOverallStats(user.LanguageCode)
+	if err != nil {
+		log.Printf("Failed to get stats: %v", err)
+		return ctx.Send("Failed to fetch analytics.")
+	}
+
+	return ctx.Send(report, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 }
