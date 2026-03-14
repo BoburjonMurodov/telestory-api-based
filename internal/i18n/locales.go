@@ -14,6 +14,7 @@ var Locales = map[string]map[string]string{
 		"downloading":    "📊 Found %d stories. Downloading...",
 		"story_from":     "Story from %s",
 		"cooldown":       "Please wait %d seconds between downloads.",
+		"maintenance":    "🛠 We're currently experiencing some issues and are working to fix them. We'll be back shortly. Sorry for the inconvenience! 🙏",
 		"invalid_input":  "❌ Invalid input! Please send only a valid username (e.g. `@username`) or a phone number (e.g. `+1234567890`).",
 		"stats_report": "📊 **Bot Analytics**\n\n" +
 			"👥 **Total Users:** %d\n" +
@@ -37,6 +38,7 @@ var Locales = map[string]map[string]string{
 		"downloading":    "📊 %d ta hikoya topildi. Yuklanmoqda...",
 		"story_from":     "%s dan hikoya",
 		"cooldown":       "Iltimos, yuklashlar orasida %d soniya kuting.",
+		"maintenance":    "🛠 Hozirda muammolarni hal qilishga harakat qilyapmiz. Tez orada qayta ishga tushamiz. Noqulaylik uchun uzr! 🙏",
 		"invalid_input":  "❌ Noto'g'ri format! Iltimos, faqat username (masalan, `@username`) yoki telefon raqami (masalan, `+998901234567`) yuboring.",
 		"stats_report": "📊 **Bot Statistikasi**\n\n" +
 			"👥 **Jami Foydalanuvchilar:** %d\n" +
@@ -60,6 +62,7 @@ var Locales = map[string]map[string]string{
 		"downloading":    "📊 Найдено %d историй. Загрузка...",
 		"story_from":     "История от %s",
 		"cooldown":       "Пожалуйста, подождите %d секунд между загрузками.",
+		"maintenance":    "🛠 Мы работаем над устранением неполадок и скоро вернёмся. Извините за неудобства! 🙏",
 		"invalid_input":  "❌ Неверный ввод! Пожалуйста, отправьте только имя пользователя (например, `@username`) или номер телефона (например, `+79001234567`).",
 		"stats_report": "📊 **Аналитика Бота**\n\n" +
 			"👥 **Всего Пользователей:** %d\n" +

@@ -16,3 +16,7 @@
 .env
 .env.local
 .env.prod
+
+# Compiled binaries
+/application
+/broadcast

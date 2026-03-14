@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/bbr/telestory-api-based/internal/i18n"
@@ -157,6 +158,10 @@ func (c *TelegramController) TextHandler(ctx tele.Context) error {
 
 	if user.LanguageCode == "" {
 		return c.showLanguageMenu(ctx)
+	}
+
+	if os.Getenv("MAINTENANCE") == "true" {
+		return ctx.Send(i18n.GetMessage(user.LanguageCode, "maintenance"))
 	}
 
 	if !isValidSearchInput(input) {

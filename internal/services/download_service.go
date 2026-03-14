@@ -39,6 +39,7 @@ type TeleStoryResponse struct {
 	Stories []Story `json:"stories"`
 	BaseURL string  `json:"base_url"`
 	Success bool    `json:"success"`
+	Error   string  `json:"error"`
 }
 
 type Story struct {
